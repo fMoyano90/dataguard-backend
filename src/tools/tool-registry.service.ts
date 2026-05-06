@@ -107,7 +107,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     this.register({
       name: 'explain_law_simple',
-      description: 'Entrega una explicacion simple de una ley chilena para Beto.',
+      description: 'Entrega una explicacion simple de una ley chilena para una persona sin formacion legal.',
       inputSchema: z.object({ numero: z.string().min(2), articulo: z.string().optional() }),
       inputJsonSchema: objectSchema({
         numero: { type: 'string', description: 'Numero de ley, por ejemplo 21.521' },

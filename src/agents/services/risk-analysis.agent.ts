@@ -213,7 +213,7 @@ export class RiskAnalysisAgent {
         ],
         bad: [
           {
-            title: 'Condiciones poco claras para Beto',
+            title: 'Condiciones poco claras para el usuario',
             detail: 'El texto requiere una revision humana porque puede incluir permisos amplios o condiciones dificiles de entender.',
             severity: 'Medio',
             citation: secondCitation,
