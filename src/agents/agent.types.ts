@@ -22,6 +22,7 @@ export interface IntakeAgentInput {
   scenario?: CaseType | string;
   entity?: string;
   language?: string;
+  caseContextRedacted?: string;
 }
 
 export interface IntakeAgentOutput {
@@ -88,6 +89,7 @@ export interface RiskAnalysisAgentInput {
   caseType: CaseType;
   entity?: string;
   chunks: LegalChunk[];
+  caseContextRedacted?: string;
 }
 
 export interface RiskAnalysisAgentOutput {
@@ -108,6 +110,7 @@ export interface RecommendationAgentInput {
   caseType: CaseType;
   entity?: string;
   pillars: RiskPillars;
+  caseContextRedacted?: string;
 }
 
 export interface RecommendationAgentOutput {

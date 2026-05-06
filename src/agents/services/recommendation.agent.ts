@@ -44,6 +44,7 @@ export class RecommendationAgent {
           inputSummary: {
             caseType: input.caseType,
             hasEntity: Boolean(input.entity),
+            hasCaseContext: Boolean(input.caseContextRedacted?.trim()),
             goodCount: input.pillars.good.length,
             badCount: input.pillars.bad.length,
             redCount: input.pillars.red.length,
@@ -87,7 +88,10 @@ export class RecommendationAgent {
   }
 
   private buildUserPrompt(input: RecommendationAgentInput): string {
-    return `<caso>\n${input.textRedacted}\n</caso>\n\n<entidad>${input.entity ?? 'No informada'}</entidad>\n<tipo_caso>${input.caseType}</tipo_caso>\n\n<pillars>\n${JSON.stringify(input.pillars)}\n</pillars>`;
+    const contextoUsuario = input.caseContextRedacted?.trim()
+      ? `\n\n<contexto_usuario>\n${input.caseContextRedacted.trim()}\n</contexto_usuario>`
+      : '';
+    return `<caso>\n${input.textRedacted}\n</caso>\n\n<entidad>${input.entity ?? 'No informada'}</entidad>\n<tipo_caso>${input.caseType}</tipo_caso>${contextoUsuario}\n\n<pillars>\n${JSON.stringify(input.pillars)}\n</pillars>`;
   }
 
   private normalizeOutput(output: RecommendationAgentOutput, input: RecommendationAgentInput): RecommendationAgentOutput {

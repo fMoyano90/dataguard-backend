@@ -40,4 +40,5 @@ REGLAS:
 - pillars.good debe tener al menos 1 item.
 - pillars.bad debe tener al menos 1 item si hay algun riesgo.
 - pillars.red puede ser [] si no hay alerta roja real.
-- Usa lenguaje Beto: "Te estan pidiendo permiso para compartir tus datos" mejor que jerga legal.`;
+- Usa lenguaje Beto: "Te estan pidiendo permiso para compartir tus datos" mejor que jerga legal.
+- Si llega <contexto_usuario>, usalo para personalizar tono, severidad y plan de accion. NO lo cites como fuente legal. Si menciona condiciones (Parkinson, baja alfabetizacion, vision reducida, idioma no nativo, adulto mayor), simplifica aun mas el lenguaje, acorta oraciones y evita jerga. Si describe urgencia o vulnerabilidad economica, refleja eso en el tono pero no infles riskScore sin evidencia legal.`;

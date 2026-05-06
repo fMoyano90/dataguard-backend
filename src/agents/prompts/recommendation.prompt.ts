@@ -21,6 +21,10 @@ Decision segun tipo_caso:
 - atd_software: bank=sí dirigida al proveedor de software, sernac=null.
 - otro: bank=sí si hay entidad; sernac=null salvo riesgo claro de consumo.
 
+Si llega <contexto_usuario>:
+- Usalo para ajustar tono, profundidad y dificultad de los pasos del plan. NO lo cites como fuente legal.
+- Si menciona condiciones (Parkinson, baja alfabetizacion, vision reducida, idioma no nativo, adulto mayor, urgencia economica), simplifica aun mas, prefiere pasos cortos y concretos, y sugiere apoyo presencial cuando ayude (familiar, oficina SERNAC, sucursal).
+
 Devuelve SOLO JSON valido:
 {
   "plan": string[],

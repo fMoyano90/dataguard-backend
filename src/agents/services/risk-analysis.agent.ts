@@ -62,6 +62,7 @@ export class RiskAnalysisAgent {
           inputSummary: {
             caseType: input.caseType,
             hasEntity: Boolean(input.entity),
+            hasCaseContext: Boolean(input.caseContextRedacted?.trim()),
             chunksCount: input.chunks.length,
             textLength: input.textRedacted.length,
           },
@@ -88,6 +89,7 @@ export class RiskAnalysisAgent {
           inputSummary: {
             caseType: input.caseType,
             hasEntity: Boolean(input.entity),
+            hasCaseContext: Boolean(input.caseContextRedacted?.trim()),
             chunksCount: input.chunks.length,
             textLength: input.textRedacted.length,
           },
@@ -102,7 +104,10 @@ export class RiskAnalysisAgent {
   }
 
   private buildUserPrompt(input: RiskAnalysisAgentInput): string {
-    return `<marco_legal>\n${this.formatLegalContext(input.chunks)}\n</marco_legal>\n\n<entidad>${input.entity ?? 'No informada'}</entidad>\n<tipo_caso>${input.caseType}</tipo_caso>\n\n<caso>\n${input.textRedacted}\n</caso>`;
+    const contextoUsuario = input.caseContextRedacted?.trim()
+      ? `\n\n<contexto_usuario>\n${input.caseContextRedacted.trim()}\n</contexto_usuario>`
+      : '';
+    return `<marco_legal>\n${this.formatLegalContext(input.chunks)}\n</marco_legal>\n\n<entidad>${input.entity ?? 'No informada'}</entidad>\n<tipo_caso>${input.caseType}</tipo_caso>${contextoUsuario}\n\n<caso>\n${input.textRedacted}\n</caso>`;
   }
 
   private formatLegalContext(chunks: LegalChunk[]): string {

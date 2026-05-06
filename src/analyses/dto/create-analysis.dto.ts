@@ -1,4 +1,4 @@
-import { IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export const SCENARIOS = ['credito_trampa', 'app_estafa', 'galpon', 'atd_software'] as const;
 export const LANGUAGES = ['es', 'kreyol', 'quechua', 'en'] as const;
@@ -27,4 +27,9 @@ export class CreateAnalysisDto {
 
   @IsIn(DOCUMENT_TYPES)
   documentType: DocumentType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  caseContext?: string;
 }

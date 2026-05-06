@@ -29,6 +29,25 @@ export interface ClaudeToolRunnerInput extends ClaudeCompleteInput {
   maxToolRounds?: number;
 }
 
+export type DocumentMediaType =
+  | 'application/pdf'
+  | 'image/png'
+  | 'image/jpeg'
+  | 'image/webp';
+
+export interface ExtractTextFromDocumentInput {
+  buffer: Buffer;
+  mediaType: DocumentMediaType;
+  model?: string;
+  maxTokens?: number;
+}
+
+export interface ExtractTextFromDocumentResult {
+  text: string;
+  model: string;
+  usage: ClaudeCompleteResult['usage'];
+}
+
 @Injectable()
 export class ClaudeService {
   private readonly logger = new Logger(ClaudeService.name);
@@ -98,6 +117,44 @@ export class ClaudeService {
 
     this.logger.warn('Claude tool loop reached max rounds');
     return this.toCompleteResult(lastMessage, usage);
+  }
+
+  async extractTextFromDocument(input: ExtractTextFromDocumentInput): Promise<ExtractTextFromDocumentResult> {
+    const model = input.model ?? 'claude-haiku-4-5';
+    const isPdf = input.mediaType === 'application/pdf';
+    const sourceBlock = {
+      type: 'base64' as const,
+      media_type: input.mediaType,
+      data: input.buffer.toString('base64'),
+    };
+
+    const documentBlock = isPdf
+      ? { type: 'document', source: sourceBlock }
+      : { type: 'image', source: sourceBlock };
+
+    const message = await this.client.messages.create({
+      model,
+      max_tokens: input.maxTokens ?? 4096,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            documentBlock,
+            {
+              type: 'text',
+              text: 'Extrae el texto literal del documento. No resumas, no interpretes, no agregues comentarios. Devuelve SOLO el texto plano tal como aparece. Si el documento esta vacio o ilegible, responde con la palabra exacta: VACIO.',
+            },
+          ],
+        },
+      ],
+    } as any);
+
+    const result = this.toCompleteResult(message);
+    return {
+      text: result.text,
+      model,
+      usage: result.usage,
+    };
   }
 
   async completeJson<T>(input: ClaudeCompleteInput): Promise<{ data: T; raw: ClaudeCompleteResult }> {

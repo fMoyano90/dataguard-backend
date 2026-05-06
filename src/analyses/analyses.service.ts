@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AgentRunSummary } from '../agents/agent.types';
@@ -9,10 +9,12 @@ import { RiskAnalysisAgent } from '../agents/services/risk-analysis.agent';
 import { ValidatorAgent } from '../agents/services/validator.agent';
 import { AgentRun, AgentRunDocument } from '../agents/schemas/agent-run.schema';
 import { AuditLogService } from '../audit/audit-log.service';
+import { ClaudeService, DocumentMediaType } from '../claude/claude.service';
 import { PiiValidationService } from '../pii/pii-validation.service';
 import { ReportService } from '../reports/report.service';
 import { AnalysisResultDto } from './dto/analysis-result.dto';
 import { CreateAnalysisDto } from './dto/create-analysis.dto';
+import { ExtractDocumentResultDto } from './dto/extract-document-result.dto';
 import { Analysis, AnalysisDocument } from './schemas/analysis.schema';
 
 @Injectable()
@@ -27,6 +29,7 @@ export class AnalysesService {
     private readonly piiValidationService: PiiValidationService,
     private readonly auditLogService: AuditLogService,
     private readonly reportService: ReportService,
+    private readonly claudeService: ClaudeService,
     private readonly intakeAgent: IntakeAgent,
     private readonly regulatoryContextAgent: RegulatoryContextAgent,
     private readonly riskAnalysisAgent: RiskAnalysisAgent,
@@ -36,6 +39,10 @@ export class AnalysesService {
 
   async run(dto: CreateAnalysisDto): Promise<AnalysisResultDto> {
     const redaction = this.piiValidationService.redact(dto.text);
+    const contextRedaction = dto.caseContext?.trim()
+      ? this.piiValidationService.redact(dto.caseContext)
+      : null;
+    const caseContextRedacted = contextRedaction?.text ?? undefined;
     const started = await this.analysisModel.create({
       scenario: dto.scenario,
       language: dto.language,
@@ -68,6 +75,8 @@ export class AnalysesService {
         documentType: dto.documentType,
         piiRedacted: redaction.piiRedacted,
         piiFindings: redaction.found,
+        hasCaseContext: Boolean(caseContextRedacted),
+        caseContextPiiRedacted: contextRedaction?.piiRedacted ?? false,
       },
     });
 
@@ -79,6 +88,7 @@ export class AnalysesService {
       scenario: dto.scenario,
       entity: dto.entity,
       language: dto.language,
+      caseContextRedacted,
     });
     agentRuns.push(intake.run);
     if (intake.run.status === 'warn') warnCount += 1;
@@ -102,6 +112,7 @@ export class AnalysesService {
       caseType: intake.data.caseType,
       entity: dto.entity,
       chunks: regulatory.data.chunks,
+      caseContextRedacted,
     });
     agentRuns.push(risk.run);
     if (risk.run.status === 'warn') warnCount += 1;
@@ -115,6 +126,7 @@ export class AnalysesService {
       caseType: intake.data.caseType,
       entity: dto.entity,
       pillars: risk.data.pillars,
+      caseContextRedacted,
     });
     agentRuns.push(recommendation.run);
     if (recommendation.run.status === 'warn') warnCount += 1;
@@ -218,6 +230,55 @@ export class AnalysesService {
     });
 
     return result;
+  }
+
+  async extractDocument(file: Express.Multer.File): Promise<ExtractDocumentResultDto> {
+    const startedAt = Date.now();
+    const mediaType = file.mimetype as DocumentMediaType;
+
+    let extracted;
+    try {
+      extracted = await this.claudeService.extractTextFromDocument({
+        buffer: file.buffer,
+        mediaType,
+      });
+    } catch (error) {
+      this.logger.warn(`extractDocument failed: ${(error as Error).message}`);
+      throw new BadRequestException(
+        'No fue posible leer el documento. Verifica que el archivo no este corrupto y vuelve a intentarlo.',
+      );
+    }
+
+    const rawText = (extracted.text ?? '').trim();
+    if (!rawText || rawText === 'VACIO') {
+      throw new BadRequestException(
+        'No se detecto texto en el documento. Sube una version mas legible o pega el contenido manualmente.',
+      );
+    }
+
+    const redaction = this.piiValidationService.redact(rawText);
+
+    await this.auditLogService.log({
+      type: 'document_extracted',
+      details: {
+        mimetype: file.mimetype,
+        sizeBytes: file.size,
+        charCount: redaction.text.length,
+        piiRedacted: redaction.piiRedacted,
+        piiFindings: redaction.found,
+        model: extracted.model,
+        durationMs: Date.now() - startedAt,
+        tokenUsage: extracted.usage,
+      },
+    });
+
+    return {
+      text: redaction.text,
+      charCount: redaction.text.length,
+      piiRedacted: redaction.piiRedacted,
+      mimetype: file.mimetype,
+      model: extracted.model,
+    };
   }
 
   async findById(id: string): Promise<AnalysisResultDto> {
