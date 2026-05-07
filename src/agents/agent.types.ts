@@ -30,6 +30,7 @@ export interface IntakeAgentOutput {
   entities: string[];
   language: 'es' | 'kreyol' | 'quechua' | 'en';
   piiResidual: boolean;
+  isRelevantCase: boolean;
 }
 
 export interface LegalChunk {

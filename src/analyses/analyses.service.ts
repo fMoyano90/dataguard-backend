@@ -94,10 +94,32 @@ export class AnalysesService {
     if (intake.run.status === 'warn') warnCount += 1;
     await this.logAgentRun(analysisId, 'intake', intake.run.status, intake.data as unknown as Record<string, unknown>);
 
+    if (intake.run.status === 'done' && intake.data.isRelevantCase === false) {
+      await this.auditLogService.log({
+        type: 'analysis_rejected_not_relevant',
+        analysisId,
+        details: {
+          caseType: intake.data.caseType,
+          entitiesDetected: intake.data.entities,
+        },
+      });
+      throw new BadRequestException({
+        code: 'NOT_A_CONTRACT',
+        message:
+          'Lo que subiste no corresponde a un contrato, terminos y condiciones u otro documento que este sistema pueda analizar. Sube un contrato, T&C, contrato de arriendo o anexo de tratamiento de datos.',
+        analysisId,
+      });
+    }
+
+    const resolvedEntity =
+      dto.entity?.trim() ||
+      intake.data.entities.find((name) => typeof name === 'string' && name.trim().length >= 2)?.trim() ||
+      'No identificada';
+
     const regulatory = await this.regulatoryContextAgent.run({
       textRedacted: redaction.text,
       caseType: intake.data.caseType,
-      entity: dto.entity,
+      entity: resolvedEntity,
       topK: 5,
     });
     agentRuns.push(regulatory.run);
@@ -110,7 +132,7 @@ export class AnalysesService {
     const risk = await this.riskAnalysisAgent.run({
       textRedacted: redaction.text,
       caseType: intake.data.caseType,
-      entity: dto.entity,
+      entity: resolvedEntity,
       chunks: regulatory.data.chunks,
       caseContextRedacted,
     });
@@ -124,7 +146,7 @@ export class AnalysesService {
     const recommendation = await this.recommendationAgent.run({
       textRedacted: redaction.text,
       caseType: intake.data.caseType,
-      entity: dto.entity,
+      entity: resolvedEntity,
       pillars: risk.data.pillars,
       caseContextRedacted,
     });

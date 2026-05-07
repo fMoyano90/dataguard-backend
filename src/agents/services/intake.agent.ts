@@ -45,6 +45,7 @@ export class IntakeAgent {
             entitiesCount: data.entities.length,
             language: data.language,
             piiResidual: data.piiResidual,
+            isRelevantCase: data.isRelevantCase,
           },
           tokenUsage: response.raw.usage,
         },
@@ -69,6 +70,7 @@ export class IntakeAgent {
             entitiesCount: data.entities.length,
             language: data.language,
             piiResidual: data.piiResidual,
+            isRelevantCase: data.isRelevantCase,
             fallback: true,
           },
         },
@@ -85,6 +87,7 @@ export class IntakeAgent {
       entities: Array.isArray(output.entities) ? output.entities.filter(Boolean).slice(0, 5) : [],
       language: allowedLanguages.includes(output.language) ? output.language : this.fallbackLanguage(input),
       piiResidual: Boolean(output.piiResidual),
+      isRelevantCase: typeof output.isRelevantCase === 'boolean' ? output.isRelevantCase : true,
     };
   }
 
@@ -94,6 +97,7 @@ export class IntakeAgent {
       entities: input.entity ? [input.entity] : [],
       language: this.fallbackLanguage(input),
       piiResidual: false,
+      isRelevantCase: true,
     };
   }
 

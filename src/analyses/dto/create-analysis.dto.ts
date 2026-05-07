@@ -20,10 +20,11 @@ export class CreateAnalysisDto {
   @IsIn(LANGUAGES)
   language: Language;
 
+  @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(160)
-  entity: string;
+  entity?: string;
 
   @IsIn(DOCUMENT_TYPES)
   documentType: DocumentType;
